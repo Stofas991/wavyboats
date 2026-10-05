@@ -169,7 +169,7 @@
 
     // Optional daily-generated public prices JSON (see wavy-rrp-kosik.js)
     // When set, the script will use this file (no sensitive dealer feed).
-    PRICES_URL: 'https://glos-optimalizace.cz/scripts/ceny.json',
+    PRICES_URL: 'https://glos-optimalizace.cz/wavyboats/scripts/ceny.json',
     PRICES_CACHE: true,
     PRICES_CACHE_KEY: 'wbRrp4_ceny',
 

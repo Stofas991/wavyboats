@@ -57,7 +57,7 @@
     // neumoznuje vlastni HTTP hlavicky). Verze je jen cache-busting
     // v URL, nema vliv na spravnost dat, jen na to, jak rychle se
     // projevi nova.
-    CODES_URL: 'https://glos-optimalizace.cz/scripts/kody.json?v=20260824',
+    CODES_URL: 'https://glos-optimalizace.cz/wavyboats/scripts/kody.json?v=20260824',
 
     WATCH_CHANGES: true,
     debounceMs: 250,

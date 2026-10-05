@@ -205,7 +205,7 @@
     //
     // Soubor je maly (~1 kB) a stahuje se AZ kdyz nejaka polozka selze,
     // takze bezchybny import zadny dotaz navic nedela.
-    URL_STARE_KODY: 'https://glos-optimalizace.cz/scripts/kody.json',
+    URL_STARE_KODY: 'https://glos-optimalizace.cz/wavyboats/scripts/kody.json',
     ZKOUSET_STARE_KODY: true,
 
     DEBUG: false

@@ -74,7 +74,7 @@
     // ale zajisti, ze po nasazeni nove verze dat CACHE_VERSION nize
     // (P4) okamzite prestane pouzivat starou sessionStorage kopii,
     // i kdyz by jeste 600s platila HTTP cache prohlizece.
-    PRICES_URL: 'https://glos-optimalizace.cz/scripts/ceny.json?v=20260824',
+    PRICES_URL: 'https://glos-optimalizace.cz/wavyboats/scripts/ceny.json?v=20260824',
 
     ROW_LABEL: 'Doporučená',
     SUM_LABEL: 'Doporučené ceny celkem:',
@@ -612,7 +612,7 @@
 
    CO ZBYVA OVERIT
    a) ze GitHub Actions job dobehl a ceny.json je na
-      https://glos-optimalizace.cz/scripts/ceny.json dostupny a
+      https://glos-optimalizace.cz/wavyboats/scripts/ceny.json dostupny a
       neni prazdny ({"prices":{...}} s tisici zaznamu).
    b) castka v souhrnu po nasazeni v3.0 sedi s hodnotami tabulky
       nahore.

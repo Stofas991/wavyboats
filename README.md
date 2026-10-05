@@ -17,6 +17,7 @@ https://glos-optimalizace.cz/wavyboats/scripts/<soubor>
 | --- | --- | --- |
 | `wavy-rrp-detail.js` | detail produktu | doporučená cena u produktu a variant |
 | `wavy-rrp-kosik.js` | košík | doporučené ceny u řádků a v souhrnu |
+| `wavy-kod-kosik.js` | košík | kód produktu (u variant kód varianty) a původní kód pod názvem položky |
 | `wavy-original-code-detail.js` | detail produktu | „Původní kód“ vedle kódu produktu |
 | `wavy-original-code-katalog.js` | výpis katalogu | „Původní kód“ pod kódem v dlaždicích |
 | `wavy-expedice.js` | objednávka, krok 2 | volba dělené expedice |

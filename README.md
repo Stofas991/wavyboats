@@ -22,6 +22,7 @@ https://glos-optimalizace.cz/wavyboats/scripts/<soubor>
 | `wavy-original-code-katalog.js` | výpis katalogu | „Původní kód“ pod kódem v dlaždicích |
 | `wavy-expedice.js` | objednávka, krok 2 | volba dělené expedice |
 | `wavy-import-kosiku.js` | košík | import objednávkové tabulky (.xls/.xlsx/.csv) do košíku |
+| `wavy-rozkres.js` | stránka s blokem `.wb-vykres` | klikací rozkres dílů – živé ceny, dostupnost, náhled a košík (POC) |
 
 Vkládají se v administraci Shoptetu (Editor HTML kódu) jako
 `<script src="https://glos-optimalizace.cz/wavyboats/scripts/....js"></script>`.

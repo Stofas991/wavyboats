@@ -45,6 +45,9 @@ zpátky. Potřebuje secret **`WAVY_FEED_HASH`**.
   struktury feedu, není součástí pipeline
 - `scripts/vyrob-testovaci-tabulku.py` – vyrobí testovací objednávkovou
   tabulku pro `wavy-import-kosiku.js`
+- `editor/` – prototyp editoru rozkresů pro `wavy-rozkres.js`
+  (https://glos-optimalizace.cz/wavyboats/editor/): výkres + seznam dílů,
+  ověření kódů proti `ceny.json`, umístění bodů klikáním, export kódu pro Shoptet
 
 ## Historie
 

@@ -1,0 +1,518 @@
+<!doctype html>
+<html lang="cs">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Editor rozkresů</title>
+<style>
+  :root{
+    --bg:#f3f4f6; --card:#fff; --text:#15171c; --muted:#5d6472; --line:#e3e5ea;
+    --accent:#0b0b0b; --sel:#fff4c2; --ok:#2fb344; --okbg:#5ee35e; --warn:#e08a00; --bad:#e05252; --badbg:#f29b9b; --blue:#0735ed;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--text);font:14px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+  header{background:#000;color:#fff;padding:12px 20px;display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+  header h1{font-size:18px;margin:0;font-weight:700}
+  header .tag{font-size:12px;background:#fff;color:#000;border-radius:3px;padding:1px 6px;font-weight:700}
+  header .spacer{flex:1}
+  button,.btn{font:inherit;border:1px solid var(--accent);background:var(--accent);color:#fff;border-radius:5px;padding:6px 12px;cursor:pointer;font-weight:600}
+  button.ghost{background:transparent;color:inherit;border-color:currentColor}
+  header button.ghost{color:#fff}
+  button:disabled{opacity:.4;cursor:default}
+  main{display:grid;grid-template-columns:minmax(0,1fr) 400px;gap:16px;padding:16px;max-width:1500px;margin:0 auto}
+  @media (max-width:980px){main{grid-template-columns:1fr}}
+  .card{background:var(--card);border-radius:8px;box-shadow:0 1px 3px rgba(0,0,0,.07);padding:14px 16px}
+  .steps{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+  .step{font-size:12px;color:var(--muted);border:1px solid var(--line);border-radius:20px;padding:3px 10px}
+  .step.on{color:#000;border-color:#000;font-weight:700}
+  .hint{background:#f4f7ff;border-left:3px solid var(--blue);padding:8px 12px;margin:0 0 12px;font-size:14px;min-height:38px}
+  .hint b{font-weight:700}
+  .stage-wrap{position:relative;user-select:none}
+  .stage{position:relative;cursor:crosshair;max-width:820px;margin:0 auto}
+  .stage img{display:block;width:100%;height:auto}
+  .stage svg{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+  .mk{position:absolute;transform:translate(-50%,-50%);min-width:24px;height:24px;border-radius:12px;padding:0 5px;
+      font:700 11px/24px Arial,sans-serif;text-align:center;color:#111;background:var(--okbg);box-shadow:0 1px 3px rgba(0,0,0,.35);cursor:pointer}
+  .mk.unknown{background:#ffc86b}
+  .mk.out{background:var(--badbg)}
+  .mk.sel{outline:3px solid #000;outline-offset:1px;z-index:2}
+  .pd{position:absolute;transform:translate(-50%,-50%);width:10px;height:10px;border-radius:50%;background:var(--blue);border:2px solid #fff;box-shadow:0 0 0 1px var(--blue)}
+  .empty{border:2px dashed var(--line);border-radius:8px;padding:40px 20px;text-align:center;color:var(--muted)}
+  .empty p{margin:0 0 14px}
+  .row-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+  aside{display:flex;flex-direction:column;gap:16px;min-width:0}
+  h2{font-size:15px;margin:0 0 8px}
+  .list{max-height:430px;overflow:auto;border:1px solid var(--line);border-radius:6px}
+  table{width:100%;border-collapse:collapse;font-size:13px}
+  th,td{padding:6px 8px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
+  th{position:sticky;top:0;background:#fafafa;font-size:12px;color:var(--muted);font-weight:600}
+  tr.part{cursor:pointer}
+  tr.part:hover{background:#fafafa}
+  tr.part.sel{background:var(--sel)}
+  .st{font-size:12px;white-space:nowrap}
+  .st.ok{color:var(--ok)} .st.unknown{color:var(--warn)} .st.out{color:var(--bad)}
+  .placed{font-size:12px;color:var(--muted);white-space:nowrap}
+  .small{font-size:12px;color:var(--muted)}
+  textarea,input[type=text],input[type=url]{width:100%;font:13px/1.4 ui-monospace,Consolas,monospace;border:1px solid #cfd3da;border-radius:5px;padding:7px}
+  textarea{resize:vertical}
+  label{display:block;font-weight:600;margin:10px 0 4px}
+  .progress{height:6px;background:var(--line);border-radius:3px;overflow:hidden;margin:6px 0 2px}
+  .progress i{display:block;height:100%;background:var(--ok);width:0;transition:width .2s}
+  /* Náhled tak, jak ho uvidí dealer */
+  .pv{border:1px solid var(--line);border-radius:6px;padding:10px;width:260px;max-width:100%}
+  .pv-img{position:relative;height:120px;border:1px solid #eee;border-radius:4px;overflow:hidden;background:#fff;margin:4px 0 8px}
+  .pv-img img{position:absolute;max-width:none}
+  .pv-img span{position:absolute;right:4px;bottom:2px;font-size:10px;color:#888;background:rgba(255,255,255,.85);padding:0 3px}
+  .pv-name{font-weight:700}
+  .pv-price{font-size:16px;font-weight:700;margin-top:4px}
+  .modal{position:fixed;inset:0;background:rgba(0,0,0,.5);display:none;align-items:flex-start;justify-content:center;padding:30px 12px;overflow:auto;z-index:20}
+  .modal.open{display:flex}
+  .modal .card{width:100%;max-width:760px}
+  .toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:#000;color:#fff;padding:8px 14px;border-radius:6px;opacity:0;transition:opacity .2s;pointer-events:none;z-index:30}
+  .toast.show{opacity:1}
+  kbd{border:1px solid #bbb;border-bottom-width:2px;border-radius:3px;padding:0 4px;font-size:12px;background:#fff}
+</style>
+</head>
+<body>
+<header>
+  <h1>Editor rozkresů</h1><span class="tag">PROTOTYP</span>
+  <span class="spacer"></span>
+  <button class="ghost" id="btnDemo" type="button">Načíst ukázku</button>
+  <button class="ghost" id="btnNew" type="button">Nový rozkres</button>
+  <button id="btnExport" type="button" disabled>Hotovo – vygenerovat kód</button>
+</header>
+
+<main>
+  <section class="card">
+    <div class="steps">
+      <span class="step" data-s="1">1. Výkres</span>
+      <span class="step" data-s="2">2. Seznam dílů</span>
+      <span class="step" data-s="3">3. Klikání do výkresu</span>
+      <span class="step" data-s="4">4. Vložení do e-shopu</span>
+    </div>
+    <p class="hint" id="hint"></p>
+    <div class="stage-wrap">
+      <div class="empty" id="empty">
+        <p><b>Začněte výkresem.</b> Nahrajte obrázek rozkresu (PNG/JPG z EzParts), nebo si vyzkoušejte připravenou ukázku.</p>
+        <p><input type="file" id="fileImg" accept="image/*"></p>
+        <p><button type="button" id="btnDemo2">Vyzkoušet na ukázce</button></p>
+      </div>
+      <div class="stage" id="stage" hidden>
+        <img id="img" alt="Výkres">
+        <svg id="lines"></svg>
+      </div>
+    </div>
+    <div class="row-actions" id="placeActions" hidden>
+      <button type="button" class="ghost" id="btnSkipPart" title="Klávesa Esc">Přeskočit umístění dílu</button>
+      <button type="button" class="ghost" id="btnReplace">Umístit znovu</button>
+      <button type="button" class="ghost" id="btnClearPt">Smazat body u dílu</button>
+      <span class="small" style="align-self:center">Tip: šipky <kbd>↑</kbd> <kbd>↓</kbd> přepínají díly.</span>
+    </div>
+  </section>
+
+  <aside>
+    <section class="card">
+      <h2>Seznam dílů</h2>
+      <div class="small" id="summary">Zatím žádné díly.</div>
+      <div class="progress"><i id="prog"></i></div>
+      <div class="list" id="listWrap" hidden>
+        <table>
+          <thead><tr><th>Poz.</th><th>Díl</th><th>Na e-shopu</th><th>Ve výkresu</th></tr></thead>
+          <tbody id="rows"></tbody>
+        </table>
+      </div>
+      <details id="pasteBox" style="margin-top:10px">
+        <summary><b>Vložit seznam dílů</b> <span class="small">(z Pick Listu EzParts nebo z Excelu)</span></summary>
+        <label for="paste">Řádky: pozice, číslo dílu, název (oddělené tabulátorem nebo středníkem)</label>
+        <textarea id="paste" rows="7" placeholder="1&#9;2191-9420T10&#9;COWL-TOP-BLACK&#10;2&#9;8M0043151&#9;COWL-SEAL"></textarea>
+        <div class="row-actions"><button type="button" id="btnParse">Načíst seznam</button></div>
+      </details>
+    </section>
+
+    <section class="card">
+      <h2>Takhle to uvidí dealer</h2>
+      <div id="preview" class="small">Vyberte díl v seznamu.</div>
+    </section>
+  </aside>
+</main>
+
+<div class="modal" id="modal">
+  <div class="card">
+    <h2>Vložení do e-shopu</h2>
+    <p class="small">Výkres nahrajte do Shoptetu (Správce souborů nebo přímo do stránky) a jeho adresu vložte sem. Pak zkopírujte kód
+      a vložte ho do popisu stránky / kategorie v režimu <b>Zdroj (HTML)</b>.</p>
+    <label for="imgUrl">Adresa obrázku výkresu</label>
+    <input type="url" id="imgUrl" placeholder="https://www.dealerwb.cz/user/documents/upload/rozkres-kryt.jpg">
+    <label for="title">Nadpis rozkresu</label>
+    <input type="text" id="title" placeholder="Kryt motoru – Mercury 6–15 HP 2T">
+    <label for="out">Kód pro Shoptet</label>
+    <textarea id="out" rows="9" readonly></textarea>
+    <div class="row-actions">
+      <button type="button" id="btnCopy">Zkopírovat kód</button>
+      <button type="button" class="ghost" id="btnClose">Zavřít</button>
+    </div>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+(function () {
+  'use strict';
+
+  var PRICES_URL = '../scripts/ceny.json';
+  var CODES_URL = '../scripts/kody.json';
+  var STORE_KEY = 'wb-editor-v1';
+  var DEMO_IMG = 'https://www.wassersport-kellermann.com/images/explosion/90_811286_21876_motorhaube.jpg';
+  // Ukázkový seznam ve tvaru, v jakém čísla dílů uvádí Mercury (s prefixy a pomlčkami).
+  var DEMO_LIST = [
+    '1;2191-9420T10;COWL-TOP-BLACK', '2;8M0043151;COWL-SEAL', '3;13691A02;SOUND BLANKET KIT',
+    '4;16471A1;LATCH (nedodává se)', '5;817104A3;LATCH ASSY-COWL', '6;18040-2;LATCH-HOOK', '7;12873T;SHIELD',
+    '8;10-40001-8;SCREW', '9;2192-9204A1;COWL ASSY-BOT-BLK', '9A;15061001;PLUG', '11;87-11083A6;SWITCH KIT-STOP',
+    '13;8M0032846;RETAINER', '14;44461A1;LEVER', '15;23-76470;BUSHING', '16;11394;SPACER',
+    '17;10-40019130;SCREW 30 mm', '18;13-69708;WASHER-WAVE'
+  ].join('\n');
+
+  var $ = function (id) { return document.getElementById(id); };
+  var state = { img: null, imgName: '', imgUrl: '', title: '', rows: [], sel: -1, mode: 'num' };
+  var prices = null, codeMap = {};
+
+  // --- Data z e-shopu (veřejný ceník generovaný z feedu dealerwb) ---
+  var dataReady = Promise.all([
+    fetch(PRICES_URL).then(function (r) { return r.json(); }).then(function (j) { prices = j.prices || {}; }),
+    fetch(CODES_URL).then(function (r) { return r.json(); }).then(function (j) { codeMap = j || {}; }).catch(function () {})
+  ]).catch(function () { prices = null; });
+
+  // Mercury uvádí čísla s prefixem a pomlčkami (2191-9420T10, 10-40001-8), e-shop je má bez nich.
+  function candidates(raw) {
+    var c = String(raw).trim().toUpperCase().replace(/\s+/g, '');
+    var out = [c, c.replace(/-/g, '')];
+    var i = c.indexOf('-');
+    if (i > 0) out.push(c.slice(i + 1).replace(/-/g, ''));
+    return out.filter(function (v, idx) { return v && out.indexOf(v) === idx; });
+  }
+
+  function resolve(row) {
+    if (!prices) { row.status = 'unknown'; row.shopCode = null; return; }
+    var cands = candidates(row.code);
+    for (var i = 0; i < cands.length; i++) {
+      var k = cands[i];
+      if (prices[k] != null) { row.status = 'ok'; row.shopCode = k; row.price = prices[k]; row.renamed = null; return; }
+      if (codeMap[k] && prices[codeMap[k]] != null) {
+        row.status = 'ok'; row.shopCode = codeMap[k]; row.price = prices[codeMap[k]]; row.renamed = k; return;
+      }
+    }
+    row.status = 'out'; row.shopCode = null; row.price = null;
+  }
+
+  function fmtPrice(p) {
+    return p == null ? '' : Math.round(p).toLocaleString('cs-CZ') + ' Kč';
+  }
+
+  function parseList(text) {
+    return text.split(/\r?\n/).map(function (line) {
+      line = line.trim();
+      if (!line) return null;
+      var parts = line.split(/\t|;/).map(function (s) { return s.trim(); });
+      if (parts.length < 2) parts = line.split(/\s{2,}|\s/);
+      var pos = parts[0], code = parts[1], name = parts.slice(2).join(' ').trim();
+      if (!/^\d{1,3}[A-Z]?$/i.test(pos) || !code || !/\d/.test(code)) return null;
+      return { pos: pos.toUpperCase(), code: code, name: name, x: null, y: null, px: null, py: null };
+    }).filter(Boolean);
+  }
+
+  // --- Ukládání rozpracované práce v prohlížeči (jen pohodlí, nic kritického) ---
+  function save() {
+    try {
+      localStorage.setItem(STORE_KEY, JSON.stringify({
+        img: state.img && state.img.length < 3e6 ? state.img : null, imgName: state.imgName,
+        imgUrl: state.imgUrl, title: state.title, rows: state.rows
+      }));
+    } catch (e) { /* plný nebo zakázaný storage – nevadí */ }
+  }
+  function load() {
+    try { var s = JSON.parse(localStorage.getItem(STORE_KEY) || 'null'); if (s && s.img) return s; } catch (e) {}
+    return null;
+  }
+
+  // --- Vykreslení ---
+  function placedCount() { return state.rows.filter(function (r) { return r.x != null; }).length; }
+
+  function step() {
+    if (!state.img) return 1;
+    if (!state.rows.length) return 2;
+    if (placedCount() < state.rows.length) return 3;
+    return 4;
+  }
+
+  function render() {
+    var s = step();
+    document.querySelectorAll('.step').forEach(function (el) { el.classList.toggle('on', +el.dataset.s === s); });
+    $('empty').hidden = !!state.img;
+    $('stage').hidden = !state.img;
+    $('placeActions').hidden = !(state.img && state.rows.length);
+    $('btnExport').disabled = !(state.img && placedCount());
+    if (state.img && $('img').getAttribute('src') !== state.img) $('img').src = state.img;
+    $('pasteBox').open = !!state.img && !state.rows.length;
+
+    renderHint(s);
+    renderRows();
+    renderMarkers();
+    renderPreview();
+  }
+
+  function renderHint(s) {
+    var r = state.rows[state.sel];
+    var h;
+    if (s === 1) h = '<b>Krok 1:</b> nahrajte obrázek výkresu, nebo klikněte na „Vyzkoušet na ukázce“.';
+    else if (s === 2) h = '<b>Krok 2:</b> vpravo vložte seznam dílů – zkopírujte ho z Pick Listu v EzParts nebo z Excelu.';
+    else if (!r) h = 'Vyberte díl v seznamu vpravo.';
+    else if (state.mode === 'num') h = '<b>Pozice ' + esc(r.pos) + '</b> (' + esc(r.name || r.code) + '): klikněte do výkresu na <b>číslo ' + esc(r.pos) + '</b>.';
+    else h = '<b>Pozice ' + esc(r.pos) + ':</b> teď klikněte na <b>samotný díl</b> – podle něj se udělá náhled. Nebo <kbd>Esc</kbd> pro přeskočení.';
+    if (s === 4) h = '<b>Hotovo, všechny díly jsou ve výkresu.</b> Klikněte nahoře na „Hotovo – vygenerovat kód“. Body můžete dál opravovat.';
+    $('hint').innerHTML = h;
+  }
+
+  function renderRows() {
+    var tb = $('rows');
+    $('listWrap').hidden = !state.rows.length;
+    tb.innerHTML = '';
+    state.rows.forEach(function (r, i) {
+      var tr = document.createElement('tr');
+      tr.className = 'part' + (i === state.sel ? ' sel' : '');
+      var st = r.status === 'ok'
+        ? '<span class="st ok">✓ ' + esc(r.shopCode) + '</span><br><span class="small">' + fmtPrice(r.price) + (r.renamed ? ' · nový kód' : '') + '</span>'
+        : r.status === 'out' ? '<span class="st out">✕ nenalezen</span>' : '<span class="st unknown">… ověřuji</span>';
+      var pl = r.x == null ? '<span class="placed">–</span>'
+        : '<span class="placed">✓ číslo' + (r.px != null ? '<br>✓ díl' : '') + '</span>';
+      tr.innerHTML = '<td><b>' + esc(r.pos) + '</b></td><td>' + esc(r.code) + '<br><span class="small">' + esc(r.name) + '</span></td><td>' + st + '</td><td>' + pl + '</td>';
+      tr.addEventListener('click', function () { select(i, r.x == null ? 'num' : 'num'); });
+      tb.appendChild(tr);
+    });
+    var n = state.rows.length, p = placedCount();
+    var ok = state.rows.filter(function (r) { return r.status === 'ok'; }).length;
+    $('summary').textContent = n ? (p + ' z ' + n + ' dílů umístěno · ' + ok + ' nalezeno na e-shopu' + (n - ok ? ', ' + (n - ok) + ' ne' : '')) : 'Zatím žádné díly.';
+    $('prog').style.width = n ? (p / n * 100) + '%' : '0';
+    var selRow = tb.children[state.sel];
+    if (selRow) selRow.scrollIntoView({ block: 'nearest' });
+  }
+
+  function renderMarkers() {
+    var stage = $('stage');
+    stage.querySelectorAll('.mk,.pd').forEach(function (el) { el.remove(); });
+    var svg = $('lines');
+    svg.innerHTML = '';
+    state.rows.forEach(function (r, i) {
+      if (r.x == null) return;
+      var mk = document.createElement('div');
+      mk.className = 'mk' + (r.status === 'out' ? ' out' : r.status === 'ok' ? '' : ' unknown') + (i === state.sel ? ' sel' : '');
+      mk.style.left = r.x + '%';
+      mk.style.top = r.y + '%';
+      mk.textContent = r.pos;
+      mk.title = r.code + ' ' + (r.name || '');
+      mk.addEventListener('click', function (e) {
+        // Při umísťování dílu kliknutí na cizí kolečko propadne do výkresu jako poloha dílu.
+        if (state.mode === 'part') return;
+        e.stopPropagation();
+        select(i, 'num');
+      });
+      stage.appendChild(mk);
+      if (r.px != null) {
+        var pd = document.createElement('div');
+        pd.className = 'pd';
+        pd.style.left = r.px + '%';
+        pd.style.top = r.py + '%';
+        stage.appendChild(pd);
+        if (i === state.sel) {
+          var ln = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+          ln.setAttribute('x1', r.x + '%'); ln.setAttribute('y1', r.y + '%');
+          ln.setAttribute('x2', r.px + '%'); ln.setAttribute('y2', r.py + '%');
+          ln.setAttribute('stroke', '#0735ed'); ln.setAttribute('stroke-width', '2'); ln.setAttribute('stroke-dasharray', '5 4');
+          svg.appendChild(ln);
+        }
+      }
+    });
+  }
+
+  function renderPreview() {
+    var r = state.rows[state.sel];
+    var box = $('preview');
+    if (!r) { box.className = 'small'; box.textContent = 'Vyberte díl v seznamu.'; return; }
+    box.className = '';
+    var img = $('img');
+    var crop = '';
+    if (r.x != null && img.naturalWidth) {
+      // Stejný výpočet výřezu jako na e-shopu (wavy-rozkres.js), jen pro výkres široký ~760 px.
+      var zoom = 2.5, boxW = 236, boxH = 120, baseW = 760;
+      var cx = r.px != null ? r.px : r.x, cy = r.py != null ? r.py : r.y;
+      var w = baseW * zoom, h = w * img.naturalHeight / img.naturalWidth;
+      crop = '<div class="pv-img"><img src="' + esc(state.img) + '" alt="" style="width:' + w + 'px;height:' + h + 'px;left:' +
+        (boxW / 2 - cx / 100 * w) + 'px;top:' + (boxH / 2 - cy / 100 * h) + 'px"><span>výřez z rozkresu</span></div>';
+    } else {
+      crop = '<div class="pv-img" style="display:flex;align-items:center;justify-content:center;color:#999;font-size:12px">náhled po umístění do výkresu</div>';
+    }
+    var shop = r.status === 'ok'
+      ? '<div class="small">Kód: ' + esc(r.shopCode) + '</div><div class="pv-price">' + fmtPrice(r.price) + '</div><div class="small">+ dostupnost a tlačítko „Do košíku“</div>'
+      : '<div class="small" style="color:var(--bad)">Díl na e-shopu není – v rozkresu bude červený (nedodává se).</div>';
+    box.innerHTML = '<div class="pv"><span class="small">Pozice ' + esc(r.pos) + '</span>' + crop +
+      '<div class="pv-name">' + esc(r.name || r.code) + '</div>' + shop + '</div>';
+  }
+
+  function esc(s) {
+    return String(s == null ? '' : s).replace(/[&<>"]/g, function (ch) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[ch];
+    });
+  }
+
+  function toast(msg) {
+    var t = $('toast'); t.textContent = msg; t.classList.add('show');
+    clearTimeout(toast._t); toast._t = setTimeout(function () { t.classList.remove('show'); }, 1800);
+  }
+
+  // --- Akce ---
+  function select(i, mode) {
+    state.sel = Math.max(-1, Math.min(i, state.rows.length - 1));
+    state.mode = mode || 'num';
+    render();
+  }
+
+  function nextUnplaced(from) {
+    for (var k = 1; k <= state.rows.length; k++) {
+      var j = (from + k) % state.rows.length;
+      if (state.rows[j].x == null) return j;
+    }
+    return -1;
+  }
+
+  function advance() {
+    var j = nextUnplaced(state.sel);
+    if (j === -1) { state.sel = -1; toast('Všechny díly jsou umístěné'); render(); }
+    else select(j, 'num');
+    save();
+  }
+
+  $('stage').addEventListener('click', function (e) {
+    var r = state.rows[state.sel];
+    if (!r) { toast('Nejdřív vyberte díl v seznamu'); return; }
+    var rect = $('img').getBoundingClientRect();
+    var x = +((e.clientX - rect.left) / rect.width * 100).toFixed(1);
+    var y = +((e.clientY - rect.top) / rect.height * 100).toFixed(1);
+    if (state.mode === 'num') {
+      r.x = x; r.y = y; r.px = null; r.py = null;
+      state.mode = 'part';
+      render(); save();
+    } else {
+      r.px = x; r.py = y;
+      advance();
+    }
+  });
+
+  document.addEventListener('keydown', function (e) {
+    if (/INPUT|TEXTAREA/.test(document.activeElement.tagName)) return;
+    if (e.key === 'Escape') {
+      if ($('modal').classList.contains('open')) { $('modal').classList.remove('open'); return; }
+      if (state.mode === 'part') advance();
+    } else if (e.key === 'ArrowDown' && state.rows.length) { e.preventDefault(); select(state.sel + 1, 'num'); }
+    else if (e.key === 'ArrowUp' && state.rows.length) { e.preventDefault(); select(Math.max(0, state.sel - 1), 'num'); }
+  });
+
+  $('btnSkipPart').addEventListener('click', function () { if (state.mode === 'part') advance(); });
+  $('btnReplace').addEventListener('click', function () {
+    var r = state.rows[state.sel]; if (!r) return;
+    r.x = r.y = r.px = r.py = null; select(state.sel, 'num'); save();
+  });
+  $('btnClearPt').addEventListener('click', function () {
+    var r = state.rows[state.sel]; if (!r) return;
+    r.x = r.y = r.px = r.py = null; render(); save();
+  });
+
+  function setImage(src, name) {
+    state.img = src; state.imgName = name || '';
+    render(); save();
+  }
+
+  $('fileImg').addEventListener('change', function () {
+    var f = this.files[0]; if (!f) return;
+    var fr = new FileReader();
+    fr.onload = function () { state.imgUrl = ''; setImage(fr.result, f.name); };
+    fr.readAsDataURL(f);
+  });
+
+  function setRows(rows) {
+    state.rows = rows;
+    rows.forEach(function (r) { r.status = 'unknown'; });
+    state.sel = rows.length ? 0 : -1; state.mode = 'num';
+    render();
+    dataReady.then(function () { state.rows.forEach(resolve); render(); save(); });
+  }
+
+  $('btnParse').addEventListener('click', function () {
+    var rows = parseList($('paste').value);
+    if (!rows.length) { toast('V textu jsem nenašel žádné řádky „pozice – číslo dílu“'); return; }
+    setRows(rows);
+    toast('Načteno ' + rows.length + ' dílů');
+  });
+
+  function loadDemo() {
+    state.imgUrl = DEMO_IMG; state.title = 'Kryt motoru – Mercury / Mariner 6 / 8 / 9.9 / 15 HP 2T';
+    setImage(DEMO_IMG, 'ukazka');
+    $('paste').value = DEMO_LIST;
+    setRows(parseList(DEMO_LIST));
+  }
+  $('btnDemo').addEventListener('click', loadDemo);
+  $('btnDemo2').addEventListener('click', loadDemo);
+
+  $('btnNew').addEventListener('click', function () {
+    if (state.rows.length && !confirm('Zahodit rozpracovaný rozkres a začít znovu?')) return;
+    state = { img: null, imgName: '', imgUrl: '', title: '', rows: [], sel: -1, mode: 'num' };
+    $('paste').value = ''; $('fileImg').value = '';
+    try { localStorage.removeItem(STORE_KEY); } catch (e) {}
+    render();
+  });
+
+  // --- Export pro Shoptet (formát, který čte wavy-rozkres.js) ---
+  function buildCode() {
+    var url = $('imgUrl').value.trim() || 'ADRESA-OBRAZKU-VYKRESU';
+    var title = $('title').value.trim();
+    var data = state.rows.map(function (r) {
+      var f = [r.pos, r.status === 'ok' ? r.shopCode : '-'];
+      if (r.x == null) return null;
+      f.push(r.x, r.y);
+      if (r.px != null) f.push(r.px, r.py);
+      return f.join(';');
+    }).filter(Boolean).join(' | ');
+    return (title ? '<h3>' + esc(title) + '</h3>\n' : '') +
+      '<div class="wb-vykres">\n<img src="' + esc(url) + '" alt="' + esc(title || 'Rozkres') + '">\n' +
+      '<p class="wb-vykres-data">' + data + '</p>\n</div>';
+  }
+  function refreshOut() { state.imgUrl = $('imgUrl').value.trim(); state.title = $('title').value.trim(); $('out').value = buildCode(); save(); }
+  $('btnExport').addEventListener('click', function () {
+    $('imgUrl').value = state.imgUrl || ''; $('title').value = state.title || '';
+    refreshOut();
+    $('modal').classList.add('open');
+  });
+  $('imgUrl').addEventListener('input', refreshOut);
+  $('title').addEventListener('input', refreshOut);
+  $('btnClose').addEventListener('click', function () { $('modal').classList.remove('open'); });
+  $('modal').addEventListener('click', function (e) { if (e.target === this) this.classList.remove('open'); });
+  $('btnCopy').addEventListener('click', function () {
+    var t = $('out');
+    (navigator.clipboard ? navigator.clipboard.writeText(t.value) : Promise.reject())
+      .then(function () { toast('Kód zkopírován'); })
+      .catch(function () { t.select(); document.execCommand('copy'); toast('Kód zkopírován'); });
+  });
+
+  $('img').addEventListener('load', function () { renderMarkers(); renderPreview(); });
+
+  // Obnovení rozpracované práce
+  var saved = load();
+  if (saved) {
+    state.img = saved.img; state.imgName = saved.imgName; state.imgUrl = saved.imgUrl || ''; state.title = saved.title || '';
+    state.rows = saved.rows || [];
+    state.sel = state.rows.length ? Math.max(0, nextUnplaced(-1)) : -1;
+    dataReady.then(function () { state.rows.forEach(resolve); render(); });
+  }
+  render();
+})();
+</script>
+</body>
+</html>
